@@ -25,6 +25,14 @@ max_intensity = voxel_array.max()
 full_intensity_range = max_intensity - min_intensity
 inverted_voxel_array = full_intensity_range - (voxel_array - min_intensity) + min_intensity
 
+# Normalize input volume
+normalized_image = (voxel_array - min_intensity)/full_intensity_range
+min_normalized_intensity = normalized_image.min() # Just for testing (should be 0.0)
+max_normalized_intensity = normalized_image.max() # Just for testing (should be 1.0)
+
+# Implement ROF primal-dual algorithm
+# TODO
+
 # we use the inverted voxel values and create a new ITK image again, which requires a copy of the meta information
 # like origin, spacing and orientation!
 inverted_image = createNewImageFromArray(inverted_voxel_array, image)
