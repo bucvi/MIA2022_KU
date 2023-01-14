@@ -14,10 +14,8 @@ outputImageFileName = Path("data") / "VESSEL12_05_256_inverted.mhd"
 outputDenoisedFileName = Path("data") / "VESSEL12_05_256_denoised.mhd"
 outputOtsuFileName = Path("data") / "VESSEL12_05_256_otsu.mhd"
 outputShapeLabelFileName = Path("data") / "VESSEL12_05_256_label.mhd"
-outputShapeLabelRegionGrowingFileName = Path("data") / "VESSEL12_05_256_label_region_growing.mhd"
 outputLungMaskFileName = Path("data") / "VESSEL12_05_256_lung_mask.mhd"
-outputLungMaskRegionGrowingFileName = Path("data") / "VESSEL12_05_256_lung_mask_region_growing.mhd"
-
+outputRegionGrowingFileName = Path("data") / "VESSEL12_05_256_region_growing.mhd"
 
 reader = sitk.ImageFileReader()
 reader.SetImageIO("MetaImageIO")
@@ -33,8 +31,8 @@ max_intensity = voxel_array.max()
 full_intensity_range = max_intensity - min_intensity
 # inverted_voxel_array = full_intensity_range - (voxel_array - min_intensity) + min_intensity
 
-# # we use the inverted voxel values and create a new ITK image again, which requires a copy of the meta information
-# # like origin, spacing and orientation!
+# we use the inverted voxel values and create a new ITK image again, which requires a copy of the meta information
+# like origin, spacing and orientation!
 # inverted_image = createNewImageFromArray(inverted_voxel_array, image)
 
 # writer = sitk.ImageFileWriter()
@@ -49,10 +47,11 @@ max_normalized_intensity = normalized_image.max() # Just for testing (should be 
 # Implement ROF primal-dual algorithm
 tau_p = 0.02
 tau_d = 2.0
-lam = 1 # Range between 0.1 and 10.0
-num_iterations = 300
+lam = 9 # Range between 0.1 and 10.0
+num_iterations = 500
 f = normalized_image
 
+load_denoised = True
 outputDenoisedFileName = Path("data") / f"VESSEL12_05_256_denoised_lambda_{lam}_iterations_{num_iterations}.mhd"
 
 def gradient(u):
@@ -72,19 +71,26 @@ def div(p):
 def project_p(p):
     return p/np.maximum(1, np.linalg.norm(p, axis=0))
 
-def rof_denoising(f, lam, num_iterations, tau_p, tau_d):
+def rof_denoising(f, lam, num_iterations, tau_p, tau_d, epsilon=1e-5):
     print("Start denoising!")
+
     p = np.zeros((len(f.shape),)+f.shape)
     u = np.copy(f)
+    p_prev = np.copy(p)
+    u_prev = np.copy(u)
     for n in range(0, num_iterations):
         if n%(num_iterations/10) == 0:
             print("Iteration:",n)
         p = project_p(p + tau_d*gradient(u))
         u = (u + tau_p * (div(p) + lam*f))/(1+tau_p * lam)
+        if np.linalg.norm(u-u_prev) < epsilon and np.linalg.norm(p-p_prev) < epsilon:
+            print("Early stopping after {n} iterations")
+            break
+        u_prev = u
+        p_prev = p
     print("Iteration:", num_iterations)
     print("Finished denoising!")
     return u, p
-load_denoised = True
 
 if load_denoised:
     reader.SetFileName(str(outputDenoisedFileName))
@@ -105,7 +111,7 @@ segmented_image = otsu_filter.Execute(denoised_image)
 writer.SetFileName(str(outputOtsuFileName))
 writer.Execute(segmented_image)
 
-# Shape Labeling
+# Use shape labeling to find the connected components in the thresholded segmentation image
 connected_component_filter = sitk.ConnectedComponentImageFilter()
 shape_label_image = connected_component_filter.Execute(image, segmented_image)
 
@@ -115,9 +121,10 @@ labels = np.unique(labeled_image)
 writer.SetFileName(str(outputShapeLabelFileName))
 writer.Execute(shape_label_image)
 
-# Choose lung
+# Choose the lung according to labeled shape sizes
 segments = sitk.GetArrayFromImage(segmented_image)
 components = np.zeros(labels.shape + (3,))
+
 for label in labels:
     mask = labeled_image==label
     components[label, 0] = label
@@ -131,3 +138,11 @@ lung_mask = (labeled_image==lung_label).astype(np.uint8)
 lung_mask_image = createNewImageFromArray(lung_mask, image)
 writer.SetFileName(str(outputLungMaskFileName))
 writer.Execute(lung_mask_image)
+
+# Refine the lung segmentation by region growing
+seeds = [(190, 144, 129), (55, 144, 129), (194, 199, 22), (70,201,8)] # seeds for lambda = 9
+regrowing_filter = sitk.ConfidenceConnectedImageFilter()
+regrowing_filter.SetSeedList(seeds)
+regrowing_image = regrowing_filter.Execute(denoised_image)
+writer.SetFileName(str(outputRegionGrowingFileName))
+writer.Execute(regrowing_image)
