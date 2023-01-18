@@ -51,7 +51,7 @@ lam = 5 # Range between 0.1 and 10.0
 num_iterations = 500
 f = normalized_image
 
-load_denoised = True
+load_denoised = True # Set to False to execute the ROF algorithm
 outputDenoisedFileName = Path("data") / f"VESSEL12_05_256_denoised_lambda_{lam}_iterations_{num_iterations}.mhd"
 
 def gradient(u):
