@@ -1,0 +1,13 @@
+ObjectType = Image
+NDims = 3
+BinaryData = True
+BinaryDataByteOrderMSB = False
+CompressedData = False
+TransformMatrix = 1 0 0 0 1 0 0 0 1
+Offset = 0 0 0
+CenterOfRotation = 0 0 0
+AnatomicalOrientation = RAI
+ElementSpacing = 1.4414100000000001 1.4414100000000001 1.1592899999999999
+DimSize = 256 256 256
+ElementType = MET_DOUBLE
+ElementDataFile = VESSEL12_05_256_denoised_lambda_0.1_iterations_500.raw
