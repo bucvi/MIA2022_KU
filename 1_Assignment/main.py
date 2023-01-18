@@ -81,9 +81,9 @@ def rof_denoising(f, lam, num_iterations, tau_p, tau_d, epsilon=1e-5):
     for n in range(0, num_iterations):
         if n%(num_iterations/10) == 0:
             print("Iteration:",n)
+        u = u - tau_p*(-div(p)+lam*(u-f))
         p = project_p(p + tau_d*gradient(u))
-        u = (u + tau_p * (div(p) + lam*f))/(1+tau_p * lam)
-        if np.linalg.norm(u-u_prev) < epsilon and np.linalg.norm(p-p_prev) < epsilon:
+        if np.abs(u-u_prev).max() < epsilon and np.abs(p-p_prev).max() < epsilon:
             print("Early stopping after {n} iterations")
             break
         u_prev = u
