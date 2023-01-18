@@ -47,7 +47,7 @@ max_normalized_intensity = normalized_image.max() # Just for testing (should be 
 # Implement ROF primal-dual algorithm
 tau_p = 0.02
 tau_d = 2.0
-lam = 9 # Range between 0.1 and 10.0
+lam = 5 # Range between 0.1 and 10.0
 num_iterations = 500
 f = normalized_image
 
@@ -103,6 +103,7 @@ else:
     writer.Execute(denoised_image)
 
 # Apply an Otsu Threshold
+print("Start Otsu threshold!")
 num_bins = 128
 
 otsu_filter = sitk.OtsuThresholdImageFilter()
@@ -110,8 +111,10 @@ segmented_image = otsu_filter.Execute(denoised_image)
 
 writer.SetFileName(str(outputOtsuFileName))
 writer.Execute(segmented_image)
+print("Finished Otsu threshold!")
 
 # Use shape labeling to find the connected components in the thresholded segmentation image
+print("Start shape labeling!")
 connected_component_filter = sitk.ConnectedComponentImageFilter()
 shape_label_image = connected_component_filter.Execute(image, segmented_image)
 
@@ -138,11 +141,14 @@ lung_mask = (labeled_image==lung_label).astype(np.uint8)
 lung_mask_image = createNewImageFromArray(lung_mask, image)
 writer.SetFileName(str(outputLungMaskFileName))
 writer.Execute(lung_mask_image)
+print("Finished shape labeling!")
 
 # Refine the lung segmentation by region growing
-seeds = [(190, 144, 129), (55, 144, 129), (194, 199, 22), (70,201,8)] # seeds for lambda = 9
+print("Start region growing!")
+seeds = [(190, 144, 129), (55, 144, 129), (194, 199, 22), (70,201,8)] # seeds for the lung
 regrowing_filter = sitk.ConfidenceConnectedImageFilter()
 regrowing_filter.SetSeedList(seeds)
 regrowing_image = regrowing_filter.Execute(denoised_image)
 writer.SetFileName(str(outputRegionGrowingFileName))
 writer.Execute(regrowing_image)
+print("Finished region growing!")
