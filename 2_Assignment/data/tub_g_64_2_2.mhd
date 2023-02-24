@@ -1,0 +1,13 @@
+ObjectType = Image
+NDims = 3
+BinaryData = True
+BinaryDataByteOrderMSB = False
+CompressedData = False
+TransformMatrix = 1 0 0 0 1 0 0 0 1
+Offset = 2.16212 2.16212 1.73893
+CenterOfRotation = 0 0 0
+AnatomicalOrientation = RAI
+ElementSpacing = 5.76564 5.76564 4.63716
+DimSize = 64 64 64
+ElementType = MET_FLOAT
+ElementDataFile = tub_g_64_2_2.raw
